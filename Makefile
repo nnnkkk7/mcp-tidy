@@ -40,19 +40,13 @@ clean:
 install:
 	$(GO) install $(LDFLAGS) ./cmd/mcp-tidy
 
-## lint: Run golangci-lint (install if needed)
-lint: install-lint-deps
-	$(GOLANGCI_LINT) run
-
-## lint-fix: Run golangci-lint with auto-fix (install if needed)
-lint-fix: install-lint-deps
-	$(GOLANGCI_LINT) run --fix
-
-## install-lint-deps: Install golangci-lint if not present
-install-lint-deps:
-	@if ! command -v $(GOLANGCI_LINT) &> /dev/null; then \
-		echo "golangci-lint not found. Installing $(GOLANGCI_LINT_VERSION)..."; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
+# Lint code
+lint:
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run; \
+	else \
+		echo "golangci-lint not installed, running go vet instead"; \
+		$(GO) vet ./...; \
 	fi
 
 # Format code

@@ -1,0 +1,5 @@
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_01","name":"mcp__context7__resolve-library-id","input":{"libraryName":"golang"}}]},"timestamp":"2025-01-01T10:00:00Z","uuid":"uuid-1"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_02","name":"mcp__context7__query-docs","input":{"query":"how to use"}}]},"timestamp":"2025-01-01T11:00:00Z","uuid":"uuid-2"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_03","name":"Read","input":{"path":"/test.go"}}]},"timestamp":"2025-01-01T12:00:00Z","uuid":"uuid-3"}
+{"type":"user","message":{"role":"user","content":"hello"},"timestamp":"2025-01-01T13:00:00Z","uuid":"uuid-4"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_04","name":"mcp__serena__find_symbol","input":{"symbol":"main"}}]},"timestamp":"2025-01-01T14:00:00Z","uuid":"uuid-5"}

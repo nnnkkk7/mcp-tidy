@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "puppeteer": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic/server-puppeteer"]
+    }
+  },
+  "projects": {
+    "/Users/xxx/github/my-project": {
+      "mcpServers": {
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"],
+          "env": {}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "/Users/xxx/github/my-project": {
+      "mcpServers": {
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": ["--from", "git+https://github.com/oraios/serena", "serena"]
+        }
+      }
+    }
+  }
+}
