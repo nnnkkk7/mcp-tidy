@@ -34,7 +34,7 @@ func init() {
 	statsCmd.Flags().StringVar(&statsSort, "sort", "calls", "Sort order (calls, name, last-used)")
 }
 
-func runStats(cmd *cobra.Command, args []string) error {
+func runStats(_ *cobra.Command, _ []string) error {
 	transcriptPath := transcript.DefaultTranscriptPath()
 	configPath := config.DefaultConfigPath()
 	period := types.ParsePeriod(statsPeriod)
@@ -74,14 +74,14 @@ func mergeConfiguredServers(stats []types.ServerStats, servers []types.MCPServer
 	}
 
 	// Add configured servers that don't have stats
-	for _, server := range servers {
-		if !statsMap[server.Name] {
+	for i := range servers {
+		if !statsMap[servers[i].Name] {
 			stats = append(stats, types.ServerStats{
-				Name:  server.Name,
+				Name:  servers[i].Name,
 				Calls: 0,
 				// LastUsed is zero value (never used)
 			})
-			statsMap[server.Name] = true // prevent duplicates
+			statsMap[servers[i].Name] = true // prevent duplicates
 		}
 	}
 

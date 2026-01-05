@@ -68,7 +68,7 @@ type MCPServer struct {
 // CommandString returns a human-readable representation of the server command.
 // For HTTP servers, returns the URL with [http] prefix.
 // For stdio servers, returns the command with arguments.
-func (s MCPServer) CommandString() string {
+func (s *MCPServer) CommandString() string {
 	if s.Type == ServerTypeHTTP {
 		return fmt.Sprintf("[http] %s", s.URL)
 	}
@@ -82,7 +82,7 @@ func (s MCPServer) CommandString() string {
 // ScopeString returns the scope as a display string.
 // For global scope, returns "global".
 // For project scope, returns the project path.
-func (s MCPServer) ScopeString() string {
+func (s *MCPServer) ScopeString() string {
 	if s.Scope == ScopeGlobal {
 		return "global"
 	}

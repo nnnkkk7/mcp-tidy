@@ -35,7 +35,7 @@ func Backup(configPath string) (string, error) {
 // RemoveServer removes a server from the config file.
 // For global servers, removes from mcpServers.
 // For project servers, removes from projects.{path}.mcpServers.
-func RemoveServer(configPath string, server types.MCPServer) error {
+func RemoveServer(configPath string, server *types.MCPServer) error {
 	// Read and parse the config file
 	content, err := os.ReadFile(configPath)
 	if err != nil {
@@ -103,16 +103,16 @@ func RemoveServers(configPath string, servers []types.MCPServer) error {
 	}
 
 	// Remove each server
-	for _, server := range servers {
-		if server.Scope == types.ScopeGlobal {
+	for i := range servers {
+		if servers[i].Scope == types.ScopeGlobal {
 			if mcpServers, ok := raw["mcpServers"].(map[string]interface{}); ok {
-				delete(mcpServers, server.Name)
+				delete(mcpServers, servers[i].Name)
 			}
 		} else {
 			if projects, ok := raw["projects"].(map[string]interface{}); ok {
-				if project, ok := projects[server.ProjectPath].(map[string]interface{}); ok {
+				if project, ok := projects[servers[i].ProjectPath].(map[string]interface{}); ok {
 					if mcpServers, ok := project["mcpServers"].(map[string]interface{}); ok {
-						delete(mcpServers, server.Name)
+						delete(mcpServers, servers[i].Name)
 					}
 				}
 			}
@@ -146,20 +146,20 @@ func atomicWrite(path string, content []byte) error {
 
 	// Write content to temp file
 	if _, err := tmpFile.Write(content); err != nil {
-		tmpFile.Close()
-		os.Remove(tmpPath)
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to write to temp file: %w", err)
 	}
 
 	// Close temp file before rename
 	if err := tmpFile.Close(); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
 	// Rename temp file to target path (atomic on most filesystems)
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 

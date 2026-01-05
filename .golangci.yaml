@@ -47,9 +47,25 @@ linters:
     - bodyclose     # Check for unclosed HTTP response bodies
 
   settings:
+    errcheck:
+      # Ignore these functions for error checking (common in CLI tools)
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Writer).Write
+        - (*github.com/fatih/color.Color).Fprintf
+
     gocyclo:
       # Maximum cyclomatic complexity - reasonable for CLI tools
       min-complexity: 15
+
+    gosec:
+      # Exclude rules that are false positives for CLI tools
+      excludes:
+        - G104  # Audit errors not checked (handled by errcheck)
+        - G304  # File path provided as taint input (expected in CLI tools)
+        - G306  # WriteFile permissions (0644 is fine for config files)
 
     misspell:
       locale: US

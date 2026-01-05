@@ -21,7 +21,6 @@ const (
 )
 
 var (
-	headerColor  = color.New(color.FgCyan, color.Bold)
 	warningColor = color.New(color.FgYellow)
 	successColor = color.New(color.FgGreen)
 	dimColor     = color.New(color.Faint)
@@ -45,18 +44,18 @@ func RenderServerTable(w io.Writer, servers []types.MCPServer) {
 	fmt.Fprintln(w, strings.Repeat("─", tableWidth))
 	fmt.Fprintf(w, "  %-14s %-36s %s\n", "NAME", "SCOPE", "COMMAND")
 
-	for _, s := range sorted {
-		scope := s.ScopeString()
+	for i := range sorted {
+		scope := sorted[i].ScopeString()
 		if len(scope) > maxPathWidth {
 			scope = "..." + scope[len(scope)-maxPathWidth+3:]
 		}
 
-		command := s.CommandString()
+		command := sorted[i].CommandString()
 		if len(command) > 40 {
 			command = command[:37] + "..."
 		}
 
-		fmt.Fprintf(w, "  %-14s %-36s %s\n", s.Name, scope, command)
+		fmt.Fprintf(w, "  %-14s %-36s %s\n", sorted[i].Name, scope, command)
 	}
 	fmt.Fprintln(w)
 }
@@ -131,12 +130,12 @@ func RenderRemovalSummary(w io.Writer, removed []types.MCPServer) {
 	}
 
 	fmt.Fprintln(w)
-	for _, s := range removed {
+	for i := range removed {
 		location := "~/.claude.json"
-		if s.Scope == types.ScopeProject {
-			location = fmt.Sprintf("~/.claude.json (project: %s)", s.ProjectPath)
+		if removed[i].Scope == types.ScopeProject {
+			location = fmt.Sprintf("~/.claude.json (project: %s)", removed[i].ProjectPath)
 		}
-		successColor.Fprintf(w, "✓ Removed: %s (from %s)\n", s.Name, location)
+		successColor.Fprintf(w, "✓ Removed: %s (from %s)\n", removed[i].Name, location)
 	}
 	fmt.Fprintln(w)
 }
@@ -149,12 +148,12 @@ func RenderDryRunSummary(w io.Writer, servers []types.MCPServer) {
 	}
 
 	fmt.Fprintln(w, "\n[DRY RUN] The following servers would be removed:")
-	for _, s := range servers {
+	for i := range servers {
 		location := "global"
-		if s.Scope == types.ScopeProject {
-			location = s.ProjectPath
+		if servers[i].Scope == types.ScopeProject {
+			location = servers[i].ProjectPath
 		}
-		fmt.Fprintf(w, "  - %s (%s)\n", s.Name, location)
+		fmt.Fprintf(w, "  - %s (%s)\n", servers[i].Name, location)
 	}
 	fmt.Fprintln(w, "\nRun without --dry-run to actually remove these servers.")
 }

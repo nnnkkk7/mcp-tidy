@@ -137,7 +137,7 @@ func ParseFile(filePath string) ([]types.ToolCall, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Check if file is empty
 	stat, err := file.Stat()

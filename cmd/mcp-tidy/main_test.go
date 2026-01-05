@@ -361,6 +361,10 @@ func TestStatsOutput_JSON(t *testing.T) {
 		t.Errorf("TotalCalls mismatch (-want +got):\n%s", diff)
 	}
 
+	if output.Period != "30d" {
+		t.Errorf("expected Period '30d', got %q", output.Period)
+	}
+
 	if len(output.Servers) != 2 {
 		t.Errorf("expected 2 servers, got %d", len(output.Servers))
 	}

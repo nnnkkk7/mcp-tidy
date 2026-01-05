@@ -18,7 +18,7 @@ scope, type, and command/URL.`,
 	RunE: runList,
 }
 
-func runList(cmd *cobra.Command, args []string) error {
+func runList(_ *cobra.Command, _ []string) error {
 	configPath := config.DefaultConfigPath()
 
 	cfg, err := config.Load(configPath)

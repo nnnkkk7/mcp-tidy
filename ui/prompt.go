@@ -54,8 +54,8 @@ func SelectServersPromptWithReader(r io.Reader, w io.Writer, servers []types.MCP
 
 	fmt.Fprintln(w, "\n? Select servers to remove (enter numbers separated by spaces, or 'all'):")
 
-	for i, s := range servers {
-		stat, ok := stats[s.Name]
+	for i := range servers {
+		stat, ok := stats[servers[i].Name]
 		info := "(no usage data)"
 		if ok {
 			if stat.Calls == 0 {
@@ -65,7 +65,7 @@ func SelectServersPromptWithReader(r io.Reader, w io.Writer, servers []types.MCP
 			}
 		}
 
-		fmt.Fprintf(w, "  [%d] %s %s\n", i+1, s.Name, info)
+		fmt.Fprintf(w, "  [%d] %s %s\n", i+1, servers[i].Name, info)
 	}
 
 	fmt.Fprint(w, "\nEnter selection: ")

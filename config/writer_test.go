@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ func TestBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a test config file
 	configPath := filepath.Join(tmpDir, "claude.json")
@@ -82,7 +83,7 @@ func TestBackup_NoOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configPath := filepath.Join(tmpDir, "claude.json")
 	if err := os.WriteFile(configPath, []byte(`{"test": true}`), 0o644); err != nil {
@@ -117,7 +118,7 @@ func TestBackup_NoOverwrite(t *testing.T) {
 	content1, _ := os.ReadFile(backup1)
 	content2, _ := os.ReadFile(backup2)
 
-	if string(content1) == string(content2) {
+	if bytes.Equal(content1, content2) {
 		t.Error("backup contents should be different")
 	}
 }
@@ -213,14 +214,14 @@ func TestRemoveServer(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create temp dir: %v", err)
 			}
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			configPath := filepath.Join(tmpDir, "claude.json")
 			if err := os.WriteFile(configPath, []byte(tt.initialConfig), 0o644); err != nil {
 				t.Fatalf("failed to write initial config: %v", err)
 			}
 
-			server := types.MCPServer{
+			server := &types.MCPServer{
 				Name:        tt.serverToRemove,
 				Scope:       tt.scope,
 				ProjectPath: tt.projectPath,
@@ -258,7 +259,7 @@ func TestAtomicWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configPath := filepath.Join(tmpDir, "claude.json")
 	content := []byte(`{"test": "atomic write"}`)

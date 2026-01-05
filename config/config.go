@@ -76,7 +76,7 @@ func Load(path string) (*Config, error) {
 func (c *Config) parseServers() {
 	// Parse global servers
 	for name, raw := range c.raw.MCPServers {
-		server := c.parseServer(name, raw, types.ScopeGlobal, "")
+		server := c.parseServer(name, &raw, types.ScopeGlobal, "")
 		c.servers = append(c.servers, server)
 		c.serverMap[name] = server
 	}
@@ -84,7 +84,7 @@ func (c *Config) parseServers() {
 	// Parse project-specific servers
 	for projectPath, project := range c.raw.Projects {
 		for name, raw := range project.MCPServers {
-			server := c.parseServer(name, raw, types.ScopeProject, projectPath)
+			server := c.parseServer(name, &raw, types.ScopeProject, projectPath)
 			c.servers = append(c.servers, server)
 			c.serverMap[name] = server
 		}
@@ -92,7 +92,7 @@ func (c *Config) parseServers() {
 }
 
 // parseServer converts a raw server config into a typed MCPServer.
-func (c *Config) parseServer(name string, raw rawServerConfig, scope types.Scope, projectPath string) types.MCPServer {
+func (c *Config) parseServer(name string, raw *rawServerConfig, scope types.Scope, projectPath string) types.MCPServer {
 	serverType := types.ServerTypeStdio
 	if raw.Type == "http" {
 		serverType = types.ServerTypeHTTP
@@ -126,9 +126,9 @@ func (c *Config) GetServer(name string) (types.MCPServer, bool) {
 // GlobalServers returns only globally configured servers.
 func (c *Config) GlobalServers() []types.MCPServer {
 	var result []types.MCPServer
-	for _, s := range c.servers {
-		if s.Scope == types.ScopeGlobal {
-			result = append(result, s)
+	for i := range c.servers {
+		if c.servers[i].Scope == types.ScopeGlobal {
+			result = append(result, c.servers[i])
 		}
 	}
 	return result
@@ -137,9 +137,9 @@ func (c *Config) GlobalServers() []types.MCPServer {
 // ProjectServers returns servers for a specific project path.
 func (c *Config) ProjectServers(projectPath string) []types.MCPServer {
 	var result []types.MCPServer
-	for _, s := range c.servers {
-		if s.Scope == types.ScopeProject && s.ProjectPath == projectPath {
-			result = append(result, s)
+	for i := range c.servers {
+		if c.servers[i].Scope == types.ScopeProject && c.servers[i].ProjectPath == projectPath {
+			result = append(result, c.servers[i])
 		}
 	}
 	return result

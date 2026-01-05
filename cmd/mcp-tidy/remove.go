@@ -35,27 +35,49 @@ func init() {
 	removeCmd.Flags().StringVar(&removePeriod, "period", "30d", "Period for determining 'unused' (7d, 30d, 90d)")
 }
 
-func runRemove(cmd *cobra.Command, args []string) error {
+func runRemove(_ *cobra.Command, _ []string) error {
 	configPath := config.DefaultConfigPath()
 
-	// Load config
-	cfg, err := config.Load(configPath)
+	// Load config and stats
+	servers, statsMap, period, err := loadServersWithStats(configPath)
 	if err != nil {
 		return err
 	}
-
-	servers := cfg.Servers()
 	if len(servers) == 0 {
 		fmt.Println("No MCP servers configured.")
 		return nil
 	}
 
+	// Filter servers if --unused
+	displayServers := filterServersForRemoval(servers, statsMap, period)
+	if displayServers == nil {
+		return nil
+	}
+
+	// Let user select and get servers to remove
+	toRemove := selectServersToRemove(displayServers, statsMap)
+	if len(toRemove) == 0 {
+		fmt.Println("No servers selected.")
+		return nil
+	}
+
+	// Execute removal
+	return executeRemoval(configPath, toRemove)
+}
+
+func loadServersWithStats(configPath string) ([]types.MCPServer, map[string]types.ServerStats, types.Period, error) {
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	servers := cfg.Servers()
+	period := types.ParsePeriod(removePeriod)
+
 	// Get stats for all servers
 	transcriptPath := transcript.DefaultTranscriptPath()
-	period := types.ParsePeriod(removePeriod)
 	allStats, err := transcript.GetStats(transcriptPath, period)
 	if err != nil {
-		// Stats might fail if no logs exist, continue anyway
 		allStats = nil
 	}
 
@@ -65,55 +87,58 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		statsMap[s.Name] = s
 	}
 
-	// Filter servers if --unused
-	displayServers := servers
-	if removeUnused {
-		var unused []types.MCPServer
-		for _, s := range servers {
-			stat, ok := statsMap[s.Name]
-			if !ok || stat.IsUnused(period.Duration()) {
-				unused = append(unused, s)
-			}
-		}
-		displayServers = unused
+	return servers, statsMap, period, nil
+}
 
-		if len(displayServers) == 0 {
-			fmt.Println("No unused servers found.")
-			return nil
+func filterServersForRemoval(servers []types.MCPServer, statsMap map[string]types.ServerStats, period types.Period) []types.MCPServer {
+	if !removeUnused {
+		return servers
+	}
+
+	var unused []types.MCPServer
+	for i := range servers {
+		stat, ok := statsMap[servers[i].Name]
+		if !ok || stat.IsUnused(period.Duration()) {
+			unused = append(unused, servers[i])
 		}
 	}
 
-	// Let user select servers to remove
+	if len(unused) == 0 {
+		fmt.Println("No unused servers found.")
+		return nil
+	}
+	return unused
+}
+
+func selectServersToRemove(displayServers []types.MCPServer, statsMap map[string]types.ServerStats) []types.MCPServer {
 	selectedIdx := ui.SelectServersPrompt(displayServers, statsMap)
 	if len(selectedIdx) == 0 {
-		fmt.Println("No servers selected.")
 		return nil
 	}
 
-	// Get selected servers
 	var toRemove []types.MCPServer
 	for _, idx := range selectedIdx {
 		if idx >= 0 && idx < len(displayServers) {
 			toRemove = append(toRemove, displayServers[idx])
 		}
 	}
+	return toRemove
+}
 
-	// Dry run mode
+func executeRemoval(configPath string, toRemove []types.MCPServer) error {
 	if removeDryRun {
 		ui.RenderDryRunSummary(os.Stdout, toRemove)
 		return nil
 	}
 
-	// Confirm removal
 	if !removeForce {
 		prompt := fmt.Sprintf("Remove %d server(s)?", len(toRemove))
 		if !ui.ConfirmPrompt(prompt, false) {
-			fmt.Println("Cancelled.")
+			fmt.Println("Canceled.")
 			return nil
 		}
 	}
 
-	// Remove servers
 	if err := config.RemoveServers(configPath, toRemove); err != nil {
 		return err
 	}
