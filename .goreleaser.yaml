@@ -1,0 +1,114 @@
+# GoReleaser v2 configuration
+version: 2
+
+# Commands to run before build
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+# Build configuration
+builds:
+  - id: mcp-tidy
+    main: ./cmd/mcp-tidy
+    binary: mcp-tidy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.BuildTime={{.Date}}
+
+# Archive settings
+archives:
+  - id: mcp-tidy-archive
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+# Generate checksum file
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# Snapshot build naming
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# CHANGELOG generation
+changelog:
+  use: github-native
+
+# GitHub Release settings
+release:
+  github:
+    owner: nnnkkk7
+    name: mcp-tidy
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## mcp-tidy {{ .Version }}
+
+    A CLI tool to visualize and manage MCP server usage in Claude Code.
+
+    ### Installation
+
+    **Homebrew (macOS/Linux)**:
+    ```bash
+    brew install nnnkkk7/tap/mcp-tidy
+    ```
+
+    **Go Install**:
+    ```bash
+    go install github.com/nnnkkk7/mcp-tidy/cmd/mcp-tidy@{{ .Tag }}
+    ```
+
+    **Binary Download**:
+    Download the appropriate binary for your platform from the assets below.
+
+  footer: |
+    ---
+
+    **Full Changelog**: https://github.com/nnnkkk7/mcp-tidy/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    **Documentation**: https://github.com/nnnkkk7/mcp-tidy#readme
+
+# Homebrew Cask settings
+homebrew_casks:
+  - name: mcp-tidy
+    repository:
+      owner: nnnkkk7
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/nnnkkk7/mcp-tidy
+    description: "Visualize and manage MCP server usage in Claude Code"
+    license: MIT
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@mcp-tidy.dev
+    binaries: [mcp-tidy]
