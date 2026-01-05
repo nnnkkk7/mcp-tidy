@@ -36,10 +36,10 @@ func TestRenderServerTable(t *testing.T) {
 			name: "multiple servers",
 			servers: []types.MCPServer{
 				{
-					Name:    "context7",
-					Type:    types.ServerTypeHTTP,
-					URL:     "https://mcp.context7.com/mcp",
-					Scope:   types.ScopeGlobal,
+					Name:  "context7",
+					Type:  types.ServerTypeHTTP,
+					URL:   "https://mcp.context7.com/mcp",
+					Scope: types.ScopeGlobal,
 				},
 				{
 					Name:        "serena",

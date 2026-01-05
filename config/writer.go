@@ -25,7 +25,7 @@ func Backup(configPath string) (string, error) {
 	backupPath := fmt.Sprintf("%s.backup.%s", configPath, timestamp)
 
 	// Write backup file
-	if err := os.WriteFile(backupPath, content, 0644); err != nil {
+	if err := os.WriteFile(backupPath, content, 0o644); err != nil {
 		return "", fmt.Errorf("failed to write backup: %w", err)
 	}
 

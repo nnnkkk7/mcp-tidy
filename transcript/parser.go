@@ -15,10 +15,10 @@ import (
 
 // logEntry represents a single entry in the JSONL log file.
 type logEntry struct {
-	Type      string    `json:"type"`
-	Message   message   `json:"message"`
-	Timestamp string    `json:"timestamp"`
-	UUID      string    `json:"uuid"`
+	Type      string  `json:"type"`
+	Message   message `json:"message"`
+	Timestamp string  `json:"timestamp"`
+	UUID      string  `json:"uuid"`
 }
 
 // message represents the message field in a log entry.
@@ -210,7 +210,6 @@ func ParseDirectory(dirPath string) ([]types.ToolCall, error) {
 		allCalls = append(allCalls, calls...)
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}

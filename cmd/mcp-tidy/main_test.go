@@ -233,7 +233,7 @@ func TestRemoveCommand_Force(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read source config: %v", err)
 	}
-	if err := os.WriteFile(tmpConfig, srcContent, 0644); err != nil {
+	if err := os.WriteFile(tmpConfig, srcContent, 0o644); err != nil {
 		t.Fatalf("failed to write temp config: %v", err)
 	}
 
@@ -308,8 +308,8 @@ func TestSortStats(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		sortBy   string
+		name      string
+		sortBy    string
 		wantFirst string
 	}{
 		{"sort by calls (default)", "calls", "alpha"},

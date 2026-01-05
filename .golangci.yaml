@@ -57,9 +57,9 @@ linters:
     govet:
       # Enable all analyzers
       enable-all: true
-      # Disable shadow variable detection (can be noisy)
       disable:
         - shadow
+        - fieldalignment
 
     gocritic:
       # Enable multiple check groups

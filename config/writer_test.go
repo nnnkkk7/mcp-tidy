@@ -23,7 +23,7 @@ func TestBackup(t *testing.T) {
 	// Create a test config file
 	configPath := filepath.Join(tmpDir, "claude.json")
 	content := `{"mcpServers": {"test": {"type": "http", "url": "https://test.com"}}}`
-	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write test config: %v", err)
 	}
 
@@ -85,7 +85,7 @@ func TestBackup_NoOverwrite(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	configPath := filepath.Join(tmpDir, "claude.json")
-	if err := os.WriteFile(configPath, []byte(`{"test": true}`), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"test": true}`), 0o644); err != nil {
 		t.Fatalf("failed to write test config: %v", err)
 	}
 
@@ -99,7 +99,7 @@ func TestBackup_NoOverwrite(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Change the content
-	if err := os.WriteFile(configPath, []byte(`{"test": false}`), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"test": false}`), 0o644); err != nil {
 		t.Fatalf("failed to update test config: %v", err)
 	}
 
@@ -216,7 +216,7 @@ func TestRemoveServer(t *testing.T) {
 			defer os.RemoveAll(tmpDir)
 
 			configPath := filepath.Join(tmpDir, "claude.json")
-			if err := os.WriteFile(configPath, []byte(tt.initialConfig), 0644); err != nil {
+			if err := os.WriteFile(configPath, []byte(tt.initialConfig), 0o644); err != nil {
 				t.Fatalf("failed to write initial config: %v", err)
 			}
 

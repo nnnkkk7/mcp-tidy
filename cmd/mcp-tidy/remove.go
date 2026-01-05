@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	removeUnused  bool
-	removeDryRun  bool
-	removeForce   bool
-	removePeriod  string
+	removeUnused bool
+	removeDryRun bool
+	removeForce  bool
+	removePeriod string
 )
 
 var removeCmd = &cobra.Command{
