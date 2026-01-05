@@ -1,4 +1,4 @@
-.PHONY: all ci build test clean install lint fmt help
+.PHONY: all ci build test clean install lint fmt help install-lint
 
 # Build variables
 BINARY_NAME := mcp-tidy
@@ -7,11 +7,14 @@ BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 LDFLAGS := -ldflags "-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 GO := go
 
-# Default target
-all: test build
+# golangci-lint version
+GOLANGCI_LINT_VERSION := v2.1.6
 
-## ci: Run CI checks (lint + test)
-ci: lint test
+# Default target
+all: test lint build
+
+## ci: Run CI checks (install-lint + lint + test)
+ci: install-lint lint test
 
 # Build the binary
 build:
@@ -40,14 +43,13 @@ clean:
 install:
 	$(GO) install $(LDFLAGS) ./cmd/mcp-tidy
 
+# Install golangci-lint
+install-lint:
+	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
 # Lint code
 lint:
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run; \
-	else \
-		echo "golangci-lint not installed, running go vet instead"; \
-		$(GO) vet ./...; \
-	fi
+	golangci-lint run
 
 # Format code
 fmt:
