@@ -1,12 +1,69 @@
 # mcp-tidy
 
-A CLI tool to visualize and manage MCP (Model Context Protocol) server usage in Claude Code.
+> Keep your Claude Code MCP configuration clean — like `go mod tidy` for MCP servers.
+
+[![CI](https://github.com/nnnkkk7/mcp-tidy/actions/workflows/ci.yaml/badge.svg)](https://github.com/nnnkkk7/mcp-tidy/actions/workflows/ci.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nnnkkk7/mcp-tidy)](https://goreportcard.com/report/github.com/nnnkkk7/mcp-tidy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<!-- TODO: Add terminal GIF demo here using VHS or similar tool -->
+
+## Why mcp-tidy?
+
+### The Problem: MCP Server Bloat
+
+As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This causes real problems:
+
+| Issue | Impact |
+|-------|--------|
+| **Context window consumption** | Each server's tool definitions consume 5,000–15,000 tokens at session start. 7 servers can consume 67k tokens (33% of context). |
+| **Degraded tool selection** | More tools = higher chance Claude picks the wrong one, especially with similar names. |
+| **Slower startup** | Each server needs initialization, adding latency proportional to server count. |
+
+### The Solution
+
+**mcp-tidy** helps you reclaim context and improve Claude Code performance:
+
+- **See** what MCP servers are configured (global and per-project)
+- **Understand** which ones you actually use (with call statistics)
+- **Clean up** unused servers safely (with automatic backups)
+
+> Removing unused MCP servers can recover 10-30% of your context window.
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
-- **List** all configured MCP servers (global and project-scoped)
-- **Stats** view usage statistics for each server
-- **Remove** unused servers interactively with backup support
+| Command | Description |
+|---------|-------------|
+| `mcp-tidy list` | Display all configured MCP servers (global + project-scoped) |
+| `mcp-tidy stats` | Show usage statistics with visual usage bars |
+| `mcp-tidy remove` | Interactively remove unused servers with backup |
+
+## Quick Start
+
+```bash
+# Install
+brew install nnnkkk7/tap/mcp-tidy
+
+# See your MCP servers
+mcp-tidy list
+
+# Check which ones you actually use
+mcp-tidy stats
+
+# Clean up unused servers
+mcp-tidy remove --unused
+```
 
 ## Installation
 
@@ -43,6 +100,7 @@ mcp-tidy list
 ```
 
 Output:
+
 ```
 MCP Servers (3 configured)
 
@@ -59,6 +117,7 @@ mcp-tidy stats
 ```
 
 Output:
+
 ```
 MCP Server Usage Statistics (last 30 days)
 
@@ -71,6 +130,7 @@ Total tool calls: 165
 ```
 
 Options:
+
 - `--period` - Time period for stats (7d, 30d, 90d, all). Default: 30d
 - `--sort` - Sort by (calls, name, last-used). Default: calls
 - `--json` - Output in JSON format
@@ -90,6 +150,7 @@ mcp-tidy remove
 ```
 
 Interactive selection:
+
 ```
 Select servers to remove:
 
@@ -104,6 +165,7 @@ Removed: puppeteer
 ```
 
 Options:
+
 - `--unused` - Only show unused servers
 - `--dry-run` - Preview changes without removing
 - `--force` - Remove without confirmation
@@ -140,6 +202,22 @@ make build
 
 # Install
 make install
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Before submitting, please run:
+
+```bash
+make ci  # Run lint + test
 ```
 
 ## License
