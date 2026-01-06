@@ -30,6 +30,8 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 - **Understand** which ones you actually use (with call statistics)
 - **Clean up** unused servers safely (with automatic backups)
 
+> **Note**: Currently supports **Claude Code** only. Other MCP clients (Claude Desktop, etc.) are not yet supported.
+
 
 ## Table of Contents
 
@@ -38,6 +40,8 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -195,6 +199,11 @@ mcp-tidy reads from `~/.claude.json` which contains:
 
 Usage statistics are collected from Claude Code transcript logs in `~/.claude/projects/`.
 
+## Limitations
+
+- **Claude Code only**: Other MCP clients (Claude Desktop, Cursor, etc.) are not yet supported
+- **Config file**: Only reads `~/.claude.json`. Other config locations (`settings.json`, `.mcp.json`) are not scanned
+- **Path encoding**: Non-ASCII characters in project paths may not be handled correctly
 
 ## Contributing
 
