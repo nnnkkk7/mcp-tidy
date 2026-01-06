@@ -477,3 +477,247 @@ func TestMergeConfiguredServers_ZeroCalls(t *testing.T) {
 	}
 	t.Error("unused-server not found in result")
 }
+
+func TestFilterServersForRemoval(t *testing.T) {
+	now := time.Now()
+	period := types.Period30Days
+
+	tests := []struct {
+		name         string
+		servers      []types.MCPServer
+		statsMap     map[string]types.ServerStats
+		removeUnused bool
+		wantCount    int
+		wantNames    []string
+	}{
+		{
+			name: "returns all servers when removeUnused is false",
+			servers: []types.MCPServer{
+				{Name: "used", Scope: types.ScopeGlobal},
+				{Name: "unused", Scope: types.ScopeGlobal},
+			},
+			statsMap: map[string]types.ServerStats{
+				"used":   {Name: "used", Calls: 100, LastUsed: now},
+				"unused": {Name: "unused", Calls: 0},
+			},
+			removeUnused: false,
+			wantCount:    2,
+			wantNames:    []string{"used", "unused"},
+		},
+		{
+			name: "filters only unused servers when removeUnused is true",
+			servers: []types.MCPServer{
+				{Name: "used", Scope: types.ScopeGlobal},
+				{Name: "unused-no-stats", Scope: types.ScopeGlobal},
+				{Name: "unused-zero-calls", Scope: types.ScopeGlobal},
+			},
+			statsMap: map[string]types.ServerStats{
+				"used":              {Name: "used", Calls: 100, LastUsed: now},
+				"unused-zero-calls": {Name: "unused-zero-calls", Calls: 0, LastUsed: time.Time{}},
+			},
+			removeUnused: true,
+			wantCount:    2,
+			wantNames:    []string{"unused-no-stats", "unused-zero-calls"},
+		},
+		{
+			name: "filters old usage as unused",
+			servers: []types.MCPServer{
+				{Name: "recent", Scope: types.ScopeGlobal},
+				{Name: "old", Scope: types.ScopeGlobal},
+			},
+			statsMap: map[string]types.ServerStats{
+				"recent": {Name: "recent", Calls: 100, LastUsed: now.Add(-1 * 24 * time.Hour)}, // 1 day ago
+				"old":    {Name: "old", Calls: 50, LastUsed: now.Add(-60 * 24 * time.Hour)},    // 60 days ago
+			},
+			removeUnused: true,
+			wantCount:    1,
+			wantNames:    []string{"old"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set global flag
+			removeUnused = tt.removeUnused
+
+			result := filterServersForRemoval(tt.servers, tt.statsMap, period)
+
+			// For removeUnused=false, it returns input as-is
+			if !tt.removeUnused {
+				if len(result) != len(tt.servers) {
+					t.Errorf("expected %d servers, got %d", len(tt.servers), len(result))
+				}
+				return
+			}
+
+			if len(result) != tt.wantCount {
+				t.Errorf("expected %d servers, got %d", tt.wantCount, len(result))
+			}
+
+			// Check expected names
+			resultNames := make(map[string]bool)
+			for _, s := range result {
+				resultNames[s.Name] = true
+			}
+
+			for _, name := range tt.wantNames {
+				if !resultNames[name] {
+					t.Errorf("expected server %q in result", name)
+				}
+			}
+
+			// Reset flag
+			removeUnused = false
+		})
+	}
+}
+
+func TestStatsCommand_GroupedOutput(t *testing.T) {
+	// Test that stats command with servers produces grouped output
+	cfg, err := config.Load("../../testdata/claude.json")
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	servers := cfg.Servers()
+	stats, err := transcript.GetStats("../../testdata/projects", types.PeriodAll)
+	if err != nil {
+		t.Fatalf("failed to get stats: %v", err)
+	}
+
+	// Merge stats with servers
+	stats = mergeConfiguredServers(stats, servers)
+
+	var buf bytes.Buffer
+	ui.RenderStatsTable(&buf, stats, types.PeriodAll.Duration(), servers)
+	output := buf.String()
+
+	// Should have grouped output if there are both global and project servers
+	hasGlobal := false
+	for _, s := range servers {
+		if s.Scope == types.ScopeGlobal {
+			hasGlobal = true
+			break
+		}
+	}
+
+	if hasGlobal && !strings.Contains(output, "Global") {
+		t.Error("expected 'Global' section in grouped output")
+	}
+
+	// Verify all server stats are shown
+	for _, s := range stats {
+		if !strings.Contains(output, s.Name) {
+			t.Errorf("expected server %q in output", s.Name)
+		}
+	}
+}
+
+func TestFilterServersForRemoval_NoUnusedServers(t *testing.T) {
+	now := time.Now()
+	period := types.Period30Days
+
+	servers := []types.MCPServer{
+		{Name: "active1", Scope: types.ScopeGlobal},
+		{Name: "active2", Scope: types.ScopeProject, ProjectPath: "/project"},
+	}
+
+	statsMap := map[string]types.ServerStats{
+		"active1": {Name: "active1", Calls: 100, LastUsed: now},
+		"active2": {Name: "active2", Calls: 50, LastUsed: now},
+	}
+
+	removeUnused = true
+	defer func() { removeUnused = false }()
+
+	result := filterServersForRemoval(servers, statsMap, period)
+
+	// Should return nil when no unused servers
+	if result != nil {
+		t.Errorf("expected nil when no unused servers, got %d servers", len(result))
+	}
+}
+
+func TestSelectServersToRemove(t *testing.T) {
+	servers := []types.MCPServer{
+		{Name: "server1", Scope: types.ScopeGlobal},
+		{Name: "server2", Scope: types.ScopeProject, ProjectPath: "/project"},
+		{Name: "server3", Scope: types.ScopeGlobal},
+	}
+
+	statsMap := map[string]types.ServerStats{
+		"server1": {Name: "server1", Calls: 100},
+		"server2": {Name: "server2", Calls: 50},
+		"server3": {Name: "server3", Calls: 0},
+	}
+
+	tests := []struct {
+		name      string
+		input     string
+		wantCount int
+		wantNames []string
+	}{
+		{
+			name:      "select single server",
+			input:     "1\n",
+			wantCount: 1,
+			wantNames: []string{"server1"},
+		},
+		{
+			name:      "select multiple servers",
+			input:     "1 3\n",
+			wantCount: 2,
+			wantNames: []string{"server1", "server3"},
+		},
+		{
+			name:      "select all servers",
+			input:     "all\n",
+			wantCount: 3,
+			wantNames: []string{"server1", "server2", "server3"},
+		},
+		{
+			name:      "empty input returns nil",
+			input:     "\n",
+			wantCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// We can't easily test selectServersToRemove directly since it uses stdin
+			// But we can test the UI function it wraps
+			r := strings.NewReader(tt.input)
+			w := &bytes.Buffer{}
+
+			selectedIdx := ui.SelectServersPromptWithReader(r, w, servers, statsMap)
+
+			if len(selectedIdx) != tt.wantCount {
+				t.Errorf("expected %d selected, got %d", tt.wantCount, len(selectedIdx))
+				return
+			}
+
+			if tt.wantCount == 0 {
+				return
+			}
+
+			// Build result from indices
+			var result []types.MCPServer
+			for _, idx := range selectedIdx {
+				if idx >= 0 && idx < len(servers) {
+					result = append(result, servers[idx])
+				}
+			}
+
+			resultNames := make(map[string]bool)
+			for _, s := range result {
+				resultNames[s.Name] = true
+			}
+
+			for _, name := range tt.wantNames {
+				if !resultNames[name] {
+					t.Errorf("expected server %q in result", name)
+				}
+			}
+		})
+	}
+}
