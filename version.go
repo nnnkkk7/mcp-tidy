@@ -2,4 +2,4 @@
 package main
 
 // Version is the current version of mcp-tidy.
-const Version = "0.0.2"
+const Version = "0.0.3"
