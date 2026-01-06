@@ -56,16 +56,26 @@ func SelectServersPromptWithReader(r io.Reader, w io.Writer, servers []types.MCP
 
 	for i := range servers {
 		stat, ok := stats[servers[i].Name]
-		info := "(no usage data)"
+		usageInfo := "(no usage data)"
 		if ok {
 			if stat.Calls == 0 {
-				info = warningColor.Sprint("(0 calls, never used) ⚠️ unused")
+				usageInfo = warningColor.Sprint("(0 calls, never used) ⚠️ unused")
 			} else {
-				info = fmt.Sprintf("(%d calls, %s)", stat.Calls, stat.LastUsedString())
+				usageInfo = fmt.Sprintf("(%d calls, %s)", stat.Calls, stat.LastUsedString())
 			}
 		}
 
-		fmt.Fprintf(w, "  [%d] %s %s\n", i+1, servers[i].Name, info)
+		// Show scope to distinguish servers with same name
+		scope := dimColor.Sprint("[global]")
+		if servers[i].Scope == types.ScopeProject {
+			projectPath := servers[i].ProjectPath
+			if len(projectPath) > 30 {
+				projectPath = "..." + projectPath[len(projectPath)-27:]
+			}
+			scope = dimColor.Sprintf("[%s]", projectPath)
+		}
+
+		fmt.Fprintf(w, "  [%d] %s %s %s\n", i+1, servers[i].Name, scope, usageInfo)
 	}
 
 	fmt.Fprint(w, "\nEnter selection: ")

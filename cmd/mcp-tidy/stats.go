@@ -61,7 +61,7 @@ func runStats(_ *cobra.Command, _ []string) error {
 		return outputStatsJSON(stats)
 	}
 
-	ui.RenderStatsTable(os.Stdout, stats, period.Duration())
+	ui.RenderStatsTable(os.Stdout, stats, period.Duration(), cfg.Servers())
 	return nil
 }
 

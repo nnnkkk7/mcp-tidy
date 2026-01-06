@@ -61,23 +61,23 @@ func RenderServerTable(w io.Writer, servers []types.MCPServer) {
 }
 
 // RenderStatsTable renders a table of server usage statistics.
-func RenderStatsTable(w io.Writer, stats []types.ServerStats, period time.Duration) {
+// If servers is provided, stats are grouped by scope (global/project).
+func RenderStatsTable(w io.Writer, stats []types.ServerStats, period time.Duration, servers ...[]types.MCPServer) {
 	if len(stats) == 0 {
 		fmt.Fprintln(w, "No usage data found.")
 		return
 	}
 
-	// Sort by calls (descending)
-	sorted := make([]types.ServerStats, len(stats))
-	copy(sorted, stats)
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Calls > sorted[j].Calls
-	})
+	// Build stats map for quick lookup
+	statsMap := make(map[string]types.ServerStats)
+	for _, s := range stats {
+		statsMap[s.Name] = s
+	}
 
 	// Find max calls for bar scaling
 	maxCalls := 0
 	totalCalls := 0
-	for _, s := range sorted {
+	for _, s := range stats {
 		if s.Calls > maxCalls {
 			maxCalls = s.Calls
 		}
@@ -87,6 +87,100 @@ func RenderStatsTable(w io.Writer, stats []types.ServerStats, period time.Durati
 	periodDays := int(period.Hours() / 24)
 	fmt.Fprintf(w, "\nMCP Server Usage Statistics (last %d days)\n", periodDays)
 	fmt.Fprintln(w, strings.Repeat("─", tableWidth))
+
+	// If servers provided, render grouped by scope
+	if len(servers) > 0 && len(servers[0]) > 0 {
+		renderGroupedStats(w, servers[0], statsMap, maxCalls, period)
+	} else {
+		// Fallback to simple list (backwards compatibility)
+		renderSimpleStats(w, stats, maxCalls, period)
+	}
+
+	fmt.Fprintf(w, "\nTotal tool calls: %d\n\n", totalCalls)
+}
+
+// renderGroupedStats renders stats grouped by scope (global/project).
+func renderGroupedStats(w io.Writer, servers []types.MCPServer, statsMap map[string]types.ServerStats, maxCalls int, period time.Duration) {
+	// Separate servers by scope
+	var globalServers []types.MCPServer
+	projectGroups := make(map[string][]types.MCPServer)
+
+	for i := range servers {
+		if servers[i].Scope == types.ScopeGlobal {
+			globalServers = append(globalServers, servers[i])
+		} else {
+			projectGroups[servers[i].ProjectPath] = append(projectGroups[servers[i].ProjectPath], servers[i])
+		}
+	}
+
+	// Render global servers
+	if len(globalServers) > 0 {
+		fmt.Fprintf(w, "\n%s\n", dimColor.Sprint("── Global ──"))
+		fmt.Fprintf(w, "  %-14s %6s   %-14s %s\n", "NAME", "CALLS", "LAST USED", "USAGE")
+		renderServerStatsRows(w, globalServers, statsMap, maxCalls, period)
+	}
+
+	// Render project servers grouped by project
+	if len(projectGroups) > 0 {
+		// Get sorted project paths
+		var projectPaths []string
+		for path := range projectGroups {
+			projectPaths = append(projectPaths, path)
+		}
+		sort.Strings(projectPaths)
+
+		for _, projectPath := range projectPaths {
+			projectServers := projectGroups[projectPath]
+			displayPath := projectPath
+			if len(displayPath) > 50 {
+				displayPath = "..." + displayPath[len(displayPath)-47:]
+			}
+			fmt.Fprintf(w, "\n%s\n", dimColor.Sprintf("── %s ──", displayPath))
+			fmt.Fprintf(w, "  %-14s %6s   %-14s %s\n", "NAME", "CALLS", "LAST USED", "USAGE")
+			renderServerStatsRows(w, projectServers, statsMap, maxCalls, period)
+		}
+	}
+}
+
+// renderServerStatsRows renders stats rows for a list of servers.
+func renderServerStatsRows(w io.Writer, servers []types.MCPServer, statsMap map[string]types.ServerStats, maxCalls int, period time.Duration) {
+	// Sort by calls (descending)
+	sorted := make([]types.MCPServer, len(servers))
+	copy(sorted, servers)
+	sort.Slice(sorted, func(i, j int) bool {
+		si := statsMap[sorted[i].Name]
+		sj := statsMap[sorted[j].Name]
+		return si.Calls > sj.Calls
+	})
+
+	for i := range sorted {
+		stat, ok := statsMap[sorted[i].Name]
+		if !ok {
+			stat = types.ServerStats{Name: sorted[i].Name}
+		}
+
+		bar := RenderUsageBar(stat.Calls, maxCalls, barWidth)
+		lastUsed := stat.LastUsedString()
+
+		line := fmt.Sprintf("  %-14s %6d   %-14s %s", stat.Name, stat.Calls, lastUsed, bar)
+
+		if stat.IsUnused(period) {
+			fmt.Fprintf(w, "%s  %s\n", line, warningColor.Sprint("⚠️ unused"))
+		} else {
+			fmt.Fprintln(w, line)
+		}
+	}
+}
+
+// renderSimpleStats renders stats as a simple list (backwards compatibility).
+func renderSimpleStats(w io.Writer, stats []types.ServerStats, maxCalls int, period time.Duration) {
+	// Sort by calls (descending)
+	sorted := make([]types.ServerStats, len(stats))
+	copy(sorted, stats)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Calls > sorted[j].Calls
+	})
+
 	fmt.Fprintf(w, "  %-14s %6s   %-14s %s\n", "NAME", "CALLS", "LAST USED", "USAGE")
 
 	for _, s := range sorted {
@@ -101,8 +195,6 @@ func RenderStatsTable(w io.Writer, stats []types.ServerStats, period time.Durati
 			fmt.Fprintln(w, line)
 		}
 	}
-
-	fmt.Fprintf(w, "\nTotal tool calls: %d\n\n", totalCalls)
 }
 
 // RenderUsageBar renders a usage bar with filled and empty portions.
