@@ -1,12 +1,10 @@
 # mcp-tidy
 
-> Keep your Claude Code MCP configuration clean — like `go mod tidy` for MCP servers.
-
 [![CI](https://github.com/nnnkkk7/mcp-tidy/actions/workflows/ci.yaml/badge.svg)](https://github.com/nnnkkk7/mcp-tidy/actions/workflows/ci.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nnnkkk7/mcp-tidy)](https://goreportcard.com/report/github.com/nnnkkk7/mcp-tidy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-<!-- TODO: Add terminal GIF demo here using VHS or similar tool -->
+![mcp-tidy demo](assets/demo.gif)
 
 ## Why mcp-tidy?
 
@@ -16,9 +14,13 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 
 | Issue | Impact |
 |-------|--------|
-| **Context window consumption** | Each server's tool definitions consume 5,000–15,000 tokens at session start. 7 servers can consume 67k tokens (33% of context). |
-| **Degraded tool selection** | More tools = higher chance Claude picks the wrong one, especially with similar names. |
-| **Slower startup** | Each server needs initialization, adding latency proportional to server count. |
+| **Context window consumption** | Each server's tool definitions consume 5,000–15,000 tokens at session start. 7 servers can consume 67k tokens (33% of context). [^1] |
+| **Degraded tool selection** | More tools = higher chance Claude picks the wrong one, especially with similar names. [^2] |
+| **Slower startup** | Each server needs initialization, adding latency proportional to server count. [^3] |
+
+[^1]: [Built-in tools + MCP descriptions load on first message causing 10-20k token overhead](https://github.com/anthropics/claude-code/issues/3406)
+[^2]: [Introducing advanced tool use on the Claude Developer Console](https://www.anthropic.com/engineering/advanced-tool-use) - Claude's tool selection degrades with more than 30-50 tools
+[^3]: [Code execution with MCP: building more efficient AI agents](https://www.anthropic.com/engineering/code-execution-with-mcp)
 
 ### The Solution
 
@@ -28,7 +30,8 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 - **Understand** which ones you actually use (with call statistics)
 - **Clean up** unused servers safely (with automatic backups)
 
-> Removing unused MCP servers can recover 10-30% of your context window.
+> **Note**: Currently supports **Claude Code** only. Other MCP clients (Claude Desktop, etc.) are not yet supported.
+
 
 ## Table of Contents
 
@@ -37,7 +40,8 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [Development](#development)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -116,15 +120,20 @@ MCP Servers (3 configured)
 mcp-tidy stats
 ```
 
-Output:
+Output (grouped by scope):
 
 ```
 MCP Server Usage Statistics (last 30 days)
+────────────────────────────────────────────────────────────────────────────────
 
-  SERVER     CALLS  LAST USED      USAGE
-  context7   142    2 hours ago    ████████████████
-  serena     23     1 day ago      ██░░░░░░░░░░░░░░
-  puppeteer  0      never          unused
+── Global ──
+  NAME           CALLS   LAST USED      USAGE
+  context7         142   2 hours ago    ████████████████
+  puppeteer          0   never          ░░░░░░░░░░░░░░░░  ⚠️ unused
+
+── /Users/xxx/github/my-project ──
+  NAME           CALLS   LAST USED      USAGE
+  serena            23   1 day ago      ██░░░░░░░░░░░░░░
 
 Total tool calls: 165
 ```
@@ -149,19 +158,19 @@ mcp-tidy stats --json
 mcp-tidy remove
 ```
 
-Interactive selection:
+Interactive selection (with scope display):
 
 ```
-Select servers to remove:
+? Select servers to remove (enter numbers separated by spaces, or 'all'):
+  [1] context7 [global] (142 calls, 2 hours ago)
+  [2] puppeteer [global] (0 calls, never used) ⚠️ unused
+  [3] serena [/Users/xxx/github/my-project] (23 calls, 1 day ago)
 
-  [1] puppeteer  (unused, 0 calls)
-  [2] old-server (last used 45 days ago)
-
-Enter numbers (comma-separated) or 'all': 1
+Enter selection: 2
 
 Remove 1 server(s)? [y/N]: y
 Backup created: ~/.claude.json.backup.20250105-123456
-Removed: puppeteer
+✓ Removed: puppeteer (from ~/.claude.json)
 ```
 
 Options:
@@ -179,6 +188,8 @@ mcp-tidy remove --unused --dry-run
 mcp-tidy remove --unused --force
 ```
 
+> **Note**: A timestamped backup (e.g., `~/.claude.json.backup.20250105-123456`) is automatically created before any removal. You can restore it if needed.
+
 ## Configuration
 
 mcp-tidy reads from `~/.claude.json` which contains:
@@ -188,21 +199,11 @@ mcp-tidy reads from `~/.claude.json` which contains:
 
 Usage statistics are collected from Claude Code transcript logs in `~/.claude/projects/`.
 
-## Development
+## Limitations
 
-```bash
-# Run tests
-make test
-
-# Run tests with coverage
-make test-cover
-
-# Build
-make build
-
-# Install
-make install
-```
+- **Claude Code only**: Other MCP clients (Claude Desktop, Cursor, etc.) are not yet supported
+- **Config file**: Only reads `~/.claude.json`. Other config locations (`settings.json`, `.mcp.json`) are not scanned
+- **Path encoding**: Non-ASCII characters in project paths may not be handled correctly
 
 ## Contributing
 
@@ -214,11 +215,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Before submitting, please run:
-
-```bash
-make ci  # Run lint + test
-```
 
 ## License
 
