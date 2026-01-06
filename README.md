@@ -14,12 +14,12 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 
 | Issue | Impact |
 |-------|--------|
-| **Context window consumption** | Each server's tool definitions consume 5,000–15,000 tokens at session start. 7 servers can consume 67k tokens (33% of context). [^1] |
-| **Degraded tool selection** | More tools = higher chance Claude picks the wrong one, especially with similar names. [^2] |
-| **Slower startup** | Each server needs initialization, adding latency proportional to server count. [^3] |
+| **Context window consumption** | Claude Code can load all tool descriptions (built-in + MCP) into context immediately after the first message, creating ~10k–20k token overhead even for simple queries (e.g., ~11.6k without MCP, ~15k with 4 MCP servers, ~20k+ with 7+). [^1] |
+| **Degraded tool selection** | More available tools increases the chance of wrong tool selection / incorrect parameters, especially when tools have similar names. [^2] |
+| **Higher latency** | As MCP usage scales, common patterns can increase agent cost and latency (e.g., tool definitions overloading context; intermediate tool results consuming additional tokens). [^3] |
 
 [^1]: [Built-in tools + MCP descriptions load on first message causing 10-20k token overhead](https://github.com/anthropics/claude-code/issues/3406)
-[^2]: [Introducing advanced tool use on the Claude Developer Console](https://www.anthropic.com/engineering/advanced-tool-use) - Claude's tool selection degrades with more than 30-50 tools
+[^2]: [Introducing advanced tool use on the Claude Developer Console](https://www.anthropic.com/engineering/advanced-tool-use) - Tool selection failures increase with more available tools (especially with similar names)
 [^3]: [Code execution with MCP: building more efficient AI agents](https://www.anthropic.com/engineering/code-execution-with-mcp)
 
 ### The Solution
@@ -41,7 +41,6 @@ As you use Claude Code, MCP servers accumulate in your `~/.claude.json`. This ca
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Limitations](#limitations)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -202,19 +201,16 @@ Usage statistics are collected from Claude Code transcript logs in `~/.claude/pr
 ## Limitations
 
 - **Claude Code only**: Other MCP clients (Claude Desktop, Cursor, etc.) are not yet supported
-- **Config file**: Only reads `~/.claude.json`. Other config locations (`settings.json`, `.mcp.json`) are not scanned
+- **Config file scope**: Only reads `~/.claude.json`. The following locations are **not** scanned:
+  - `.mcp.json` (project-scoped servers added via `claude mcp add --scope project`)
+  - `~/.claude/settings.local.json`
+  - `.claude/settings.local.json`
+  - `managed-mcp.json` (enterprise)
 - **Path encoding**: Non-ASCII characters in project paths may not be handled correctly
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
+Contributions are welcome! Please feel free to submit a Pull Request!!
 
 ## License
 
